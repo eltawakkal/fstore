@@ -11,15 +11,16 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.kasirmobile.R;
+import com.example.kasirmobile.model.Product;
 
 import java.util.List;
 
 public class RecProdcutAdapter extends RecyclerView.Adapter<RecProdcutAdapter.ViewHolder> {
 
     Context context;
-    List<String> listProduct;
+    List<Product> listProduct;
 
-    public RecProdcutAdapter(Context context, List<String> listProduct) {
+    public RecProdcutAdapter(Context context, List<Product> listProduct) {
         this.context = context;
         this.listProduct = listProduct;
     }
@@ -34,7 +35,10 @@ public class RecProdcutAdapter extends RecyclerView.Adapter<RecProdcutAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.tvName.setText(listProduct.get(position));
+        holder.tvName.setText(listProduct.get(position).getName());
+        holder.tvSku.setText(listProduct.get(position).getSku());
+        holder.tvPrice.setText("Rp. " + listProduct.get(position).getPrice());
+        holder.tvStock.setText("Stock : " + listProduct.get(position).getStock());
     }
 
     @Override
