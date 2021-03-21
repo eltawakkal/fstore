@@ -4,31 +4,26 @@ package com.example.kasirmobile.adapter;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.kasirmobile.R;
-import com.example.kasirmobile.activity.ActivityAddSatuan;
 import com.example.kasirmobile.database.DbHelper;
 import com.example.kasirmobile.model.Product;
-
 import java.util.List;
 
-public class RecProdcutAdapter extends RecyclerView.Adapter<RecProdcutAdapter.ViewHolder> {
+public class RecBasketAdapter extends RecyclerView.Adapter<RecBasketAdapter.ViewHolder> {
 
     Context context;
     List<Product> listProduct;
     DbHelper dbHelper;
 
-    public RecProdcutAdapter(Context context, List<Product> listProduct) {
+    public RecBasketAdapter(Context context, List<Product> listProduct) {
         this.context = context;
         this.listProduct = listProduct;
         dbHelper = new DbHelper(context);
@@ -82,6 +77,8 @@ public class RecProdcutAdapter extends RecyclerView.Adapter<RecProdcutAdapter.Vi
         }
 
         void showAlertProduct(Product product) {
+            Product stockProduct = dbHelper.getProduct(product.getId());
+
             AlertDialog.Builder alert = new AlertDialog.Builder(context);
 
             View viewAlert = LayoutInflater.from(context).inflate(R.layout.view_alert_product, null, false);
@@ -93,56 +90,63 @@ public class RecProdcutAdapter extends RecyclerView.Adapter<RecProdcutAdapter.Vi
             NumberPicker numberPicker = viewAlert.findViewById(R.id.numpick_quantity_view_alert_prod);
 
             numberPicker.setMinValue(1);
-            numberPicker.setMaxValue(Integer.parseInt(product.getStock()));
+            numberPicker.setMaxValue(Integer.parseInt(product.getStock()) + Integer.parseInt(stockProduct.getStock()));
 
             tvSku.setText(product.getSku());
             tvName.setText(product.getName());
             tvStock.setText("Stock : " + product.getStock());
             tvPrice.setText("Rp. " + product.getPrice());
 
+            alert.setCancelable(false);
             alert.setTitle("Detail Product");
             alert.setView(viewAlert);
-            alert.setPositiveButton("Tambah", new DialogInterface.OnClickListener() {
+            alert.setPositiveButton("Perbarui", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    int stock = 0;
+
+                    stock = (Integer.parseInt(stockProduct.getStock()) + Integer.parseInt(product.getStock())) - numberPicker.getValue();
+                    Toast.makeText(context, "Size : " + stock, Toast.LENGTH_SHORT).show();
+
+                    dbHelper.updateProd(new Product(
+                            product.getId(),
+                            product.getName(),
+                            product.getSku(),
+                            product.getPrice(),
+                            String.valueOf(stock)
+                    ));
+
+                    dbHelper.updateStockKeranjang(new Product(
+                            product.getId(),
+                            product.getName(),
+                            product.getSku(),
+                            product.getPrice(),
+                            String.valueOf(numberPicker.getValue())
+                    ));
+                }
+            });
+            alert.setNegativeButton("Batal", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
 
-                    if (Integer.parseInt(product.getStock()) > 0) {
-                        int stock = Integer.parseInt(product.getStock()) - numberPicker.getValue();
-
-                        dbHelper.updateProd(new Product(
-                                product.getId(),
-                                product.getName(),
-                                product.getSku(),
-                                product.getPrice(),
-                                String.valueOf(stock)
-                        ));
-
-                        dbHelper.addKeranjang(new Product(
-                                product.getId(),
-                                product.getName(),
-                                product.getSku(),
-                                product.getPrice(),
-                                String.valueOf(numberPicker.getValue())
-                        ));
-                    } else {
-                        Toast.makeText(context, "Stock Kosong", Toast.LENGTH_SHORT).show();
-                    }
                 }
             });
-            alert.setNegativeButton("Edit", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    Intent intent = new Intent(context, ActivityAddSatuan.class);
-                    intent.putExtra("product", product);
-                    context.startActivity(intent);
-                }
-            });
-            alert.setNeutralButton("Hapus", new DialogInterface.OnClickListener() {
+
+            alert.setNeutralButton("Batalkan", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     listProduct.remove(product);
                     notifyDataSetChanged();
-                    dbHelper.deleteProduct(product.getId());
+
+                    int finalProd = Integer.parseInt(stockProduct.getStock()) + Integer.parseInt(product.getStock());
+
+                    dbHelper.updateProd(new Product(
+                            product.getId(),
+                            product.getName(),
+                            product.getSku(),
+                            product.getPrice(),
+                            String.valueOf(finalProd)
+                    ));
                     dbHelper.deleteItemKeranjang(product.getId());
                 }
             });

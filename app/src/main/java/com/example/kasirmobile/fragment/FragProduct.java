@@ -6,9 +6,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -18,6 +20,7 @@ import com.example.kasirmobile.R;
 import com.example.kasirmobile.activity.ActivityAddBerkala;
 import com.example.kasirmobile.activity.ActivityAddSatuan;
 import com.example.kasirmobile.adapter.RecProdcutAdapter;
+import com.example.kasirmobile.database.DbHelper;
 import com.example.kasirmobile.model.Product;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -29,9 +32,11 @@ public class FragProduct extends Fragment {
 
     View rootView;
     RecProdcutAdapter adapter;
+    DbHelper dbHelper;
 
     RecyclerView recProduct;
     FloatingActionButton fabAdd;
+    SearchView searchView;
 
     List<Product> listProduct;
 
@@ -40,37 +45,37 @@ public class FragProduct extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.frag_product, container, false);
 
+        initView();
+
+        return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        initRecyclerData("");
+    }
+
+    void initView() {
+        dbHelper = new DbHelper(getContext());
+
         recProduct = rootView.findViewById(R.id.rec_product_main);
         fabAdd = rootView.findViewById(R.id.fab_add_prodcut);
+        searchView = rootView.findViewById(R.id.src_frag_product);
 
-        listProduct = new ArrayList<>();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
 
-        listProduct.add(new Product(
-                "0",
-                "Ale-ale",
-                "2343434",
-                "321",
-                "2"
-        ));
-        listProduct.add(new Product(
-                "0",
-                "Teh Gelas",
-                "123",
-                "1500",
-                "3"
-        ));
-        listProduct.add(new Product(
-                "0",
-                "Aqua",
-                "2343434",
-                "500",
-                "4"
-        ));
-
-        adapter = new RecProdcutAdapter(getContext(), listProduct);
-
-        recProduct.setLayoutManager(new LinearLayoutManager(getContext()));
-        recProduct.setAdapter(adapter);
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                initRecyclerData(newText);
+                return false;
+            }
+        });
 
         fabAdd.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -79,7 +84,19 @@ public class FragProduct extends Fragment {
             }
         });
 
-        return rootView;
+        initRecyclerData("");
+    }
+
+    void initRecyclerData(String name) {
+        listProduct = dbHelper.getAllProduct(name);
+
+        if (listProduct.size() == 0) {
+            Toast.makeText(getContext(), "Product Kosong", Toast.LENGTH_SHORT).show();
+        }
+
+        adapter = new RecProdcutAdapter(getContext(), listProduct);
+        recProduct.setLayoutManager(new LinearLayoutManager(getContext()));
+        recProduct.setAdapter(adapter);
     }
 
     void showBottomSheetAddMenu() {

@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -13,6 +14,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.kasirmobile.R;
+import com.example.kasirmobile.database.DbHelper;
+import com.example.kasirmobile.model.Product;
 import com.google.android.material.button.MaterialButton;
 import com.google.zxing.ResultPoint;
 import com.journeyapps.barcodescanner.BarcodeCallback;
@@ -26,6 +29,11 @@ public class ActivityAddBerkala extends AppCompatActivity {
     DecoratedBarcodeView barcodeView;
     EditText edtSku, edtName, edtPrice, edtStock;
     MaterialButton btnAdd;
+
+    Product product;
+    DbHelper dbHelper;
+
+    boolean isEdit = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -65,12 +73,43 @@ public class ActivityAddBerkala extends AppCompatActivity {
     }
 
     private void initView() {
+        dbHelper = new DbHelper(this);
+
         barcodeView = findViewById(R.id.barcod_view);
         edtSku = findViewById(R.id.edt_add_product_sku_berkala);
         edtName = findViewById(R.id.edt_add_product_name_berkala);
         edtPrice = findViewById(R.id.edt_add_product_price_berkala);
         edtStock = findViewById(R.id.edt_add_product_stock_berkala);
         btnAdd = findViewById(R.id.mbt_add_product_berkala);
+
+        btnAdd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Product newProduct = new Product(
+                  isEdit ? product.getId() : "0",
+                  edtName.getText().toString(),
+                  edtSku.getText().toString(),
+                  edtPrice.getText().toString(),
+                  edtStock.getText().toString()
+                );
+
+                if (isEdit) {
+                    dbHelper.updateProd(newProduct);
+                } else {
+                    dbHelper.addProduct(newProduct);
+                }
+
+                resetInput();
+            }
+        });
+    }
+
+    void resetInput() {
+        edtName.requestFocus();
+        edtName.setText("");
+        edtStock.setText("");
+        edtPrice.setText("");
     }
 
     void startToScan() {
@@ -79,7 +118,22 @@ public class ActivityAddBerkala extends AppCompatActivity {
         BarcodeCallback callback = new BarcodeCallback() {
             @Override
             public void barcodeResult(BarcodeResult result) {
+                resetInput();
                 edtSku.setText(result.getText());
+
+                product = dbHelper.getProductBySKU(result.getText());
+
+                if (product.getName() != null) {
+                    isEdit = true;
+                    btnAdd.setText("Perbarui");
+
+                    edtName.setText(product.getName());
+                    edtPrice.setText(product.getPrice());
+                    edtStock.setText(product.getStock());
+                } else {
+                    resetInput();
+                    btnAdd.setText("Tambah");
+                }
             }
 
             @Override
